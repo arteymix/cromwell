@@ -21,9 +21,9 @@ import scala.util.Try
 
 object WomGraphMaker {
 
-  def getBundle(mainFile: Path): Checked[WomBundle] = getBundleAndFactory(mainFile).map(_._1)
+  def getBundle(mainFile: Path, listDependencies: Boolean = false): Checked[(WomBundle, Option[Seq[String]])] = getBundleAndFactory(mainFile, listDependencies).map(x => (x._1, x._3))
 
-  private def getBundleAndFactory(mainFile: Path): Checked[(WomBundle, LanguageFactory)] = {
+  private def getBundleAndFactory(mainFile: Path, listDependencies: Boolean): Checked[(WomBundle, LanguageFactory, Option[Seq[String]])] = {
     lazy val importResolvers: List[ImportResolver] =
       DirectoryResolver.localFilesystemResolvers(Some(mainFile)) :+ HttpResolver(relativeTo = None)
 
@@ -36,24 +36,24 @@ object WomGraphMaker {
           .find(_.looksParsable(mainFileContents))
           .getOrElse(new WdlDraft2LanguageFactory(ConfigFactory.empty()))
 
-      val bundle = languageFactory.getWomBundle(mainFileContents, "{}", importResolvers, List(languageFactory))
+      val bundleWithDependencies = languageFactory.getWomBundle(mainFileContents, "{}", importResolvers, List(languageFactory), listDependencies)
       // Return the pair with the languageFactory
-      bundle map ((_, languageFactory))
+      bundleWithDependencies.map(bd => (bd._1, languageFactory, bd._2))
     }
   }
 
-  def fromFiles(mainFile: Path, inputs: Option[Path]): Checked[Graph] = {
-    getBundleAndFactory(mainFile) flatMap { case (womBundle, languageFactory) =>
+  def fromFiles(mainFile: Path, inputs: Option[Path], listDependencies: Boolean = false): Checked[(Graph, Option[Seq[String]])] = {
+    getBundleAndFactory(mainFile, listDependencies) flatMap { case (womBundle, languageFactory, workflowDependencies) =>
       inputs match {
         case None =>
           for {
             executableCallable <- womBundle.toExecutableCallable
-          } yield executableCallable.graph
+          } yield (executableCallable.graph, workflowDependencies)
         case Some(inputsFile) =>
           for {
             inputsContents <- readFile(inputsFile.toAbsolutePath.pathAsString)
             validatedWomNamespace <- languageFactory.createExecutable(womBundle, inputsContents, NoIoFunctionSet)
-          } yield validatedWomNamespace.executable.graph
+          } yield (validatedWomNamespace.executable.graph, workflowDependencies)
       }
     }
   }

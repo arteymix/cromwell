@@ -12,7 +12,8 @@ final case class PartialWomtoolCommandLineArguments(command: Option[WomtoolComma
 sealed trait ValidatedWomtoolCommandLine
 final case class ParseCommandLine(workflowSource: Path) extends ValidatedWomtoolCommandLine
 final case class ValidateCommandLine(workflowSource: Path,
-                                     inputs: Option[Path]) extends ValidatedWomtoolCommandLine
+                                     inputs: Option[Path],
+                                     listDependencies: Boolean) extends ValidatedWomtoolCommandLine
 final case class HighlightCommandLine(workflowSource: Path,
                                       highlightMode: HighlightMode) extends ValidatedWomtoolCommandLine
 final case class InputsCommandLine(workflowSource: Path, showOptionals: Boolean) extends ValidatedWomtoolCommandLine
@@ -24,12 +25,13 @@ sealed trait WomtoolCommand
 
 object WomtoolCommand {
   case object Parse extends WomtoolCommand
-  case object Validate extends WomtoolCommand
   case object Highlight extends WomtoolCommand
   case object Inputs extends WomtoolCommand
   case object Graph extends WomtoolCommand
   case object Upgrade extends WomtoolCommand
   case object WomGraph extends WomtoolCommand
+
+  case class Validate(listDependencies: Boolean = false) extends WomtoolCommand
 }
 
 sealed trait HighlightMode

@@ -38,18 +38,22 @@ class WdlBiscayneLanguageFactory(override val config: Config) extends LanguageFa
 
     val checked: Checked[ValidatedWomNamespace] = for {
       _ <- enabledCheck
-      bundle <- getWomBundle(workflowSource, source.workflowOptions.asPrettyJson, importResolvers, factories)
-      executable <- createExecutable(bundle, source.inputsJson, ioFunctions)
+      bundleWithDependencies <- getWomBundle(workflowSource, source.workflowOptions.asPrettyJson, importResolvers, factories)
+      executable <- createExecutable(bundleWithDependencies._1, source.inputsJson, ioFunctions)
     } yield executable
 
     fromEither[IO](checked)
 
   }
 
-  override def getWomBundle(workflowSource: WorkflowSource, workflowOptionsJson: WorkflowOptionsJson, importResolvers: List[ImportResolver], languageFactories: List[LanguageFactory]): Checked[WomBundle] = {
+  override def getWomBundle(workflowSource: WorkflowSource,
+                            workflowOptionsJson: WorkflowOptionsJson,
+                            importResolvers: List[ImportResolver],
+                            languageFactories: List[LanguageFactory],
+                            listDependencies: Boolean = false): Checked[(WomBundle, Option[Seq[String]])] = {
     val checkEnabled: CheckedAtoB[FileStringParserInput, FileStringParserInput] = CheckedAtoB.fromCheck(x => enabledCheck map(_ => x))
     val converter: CheckedAtoB[FileStringParserInput, WomBundle] = checkEnabled andThen stringToAst andThen wrapAst andThen astToFileElement.map(FileElementToWomBundleInputs(_, workflowOptionsJson, importResolvers, languageFactories, workflowDefinitionElementToWomWorkflowDefinition, taskDefinitionElementToWomTaskDefinition)) andThen fileElementToWomBundle
-    converter.run(FileStringParserInput(workflowSource, "input.wdl"))
+    converter.run(FileStringParserInput(workflowSource, "input.wdl")).map((_, None))
   }
 
   override def createExecutable(womBundle: WomBundle, inputsJson: WorkflowJson, ioFunctions: IoFunctionSet): Checked[ValidatedWomNamespace] = {
