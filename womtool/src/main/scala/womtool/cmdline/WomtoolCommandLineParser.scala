@@ -13,7 +13,7 @@ object WomtoolCommandLineParser {
   lazy val instance: scopt.OptionParser[PartialWomtoolCommandLineArguments] = new WomtoolCommandLineParser()
 
   def validateCommandLine(args: PartialWomtoolCommandLineArguments): Option[ValidatedWomtoolCommandLine] = args match {
-    case PartialWomtoolCommandLineArguments(Some(Validate), Some(mainFile), inputs, None, None) => Option(ValidateCommandLine(mainFile, inputs))
+    case PartialWomtoolCommandLineArguments(Some(Validate(ld)), Some(mainFile), inputs, None, None) => Option(ValidateCommandLine(mainFile, inputs, ld))
     case PartialWomtoolCommandLineArguments(Some(Inputs), Some(mainFile), None, showOptionals, None) => Option(InputsCommandLine(mainFile, !showOptionals.contains(false)))
     case PartialWomtoolCommandLineArguments(Some(Parse), Some(mainFile), None, None, None) => Option(ParseCommandLine(mainFile))
     case PartialWomtoolCommandLineArguments(Some(Highlight), Some(mainFile), None, None, Some(mode)) => Option(HighlightCommandLine(mainFile, mode))
@@ -60,8 +60,14 @@ class WomtoolCommandLineParser extends scopt.OptionParser[PartialWomtoolCommandL
   note("")
 
   cmd("validate")
-    .action((_, c) => c.copy(command = Option(Validate)))
+    .action((_, c) => c.copy(command = Option(Validate())))
     .text("Validate a workflow source file. If inputs are provided then 'validate' also checks that the inputs file is a valid set of inputs for the workflow." + System.lineSeparator)
+      .children(
+        opt[Unit]('l', "list-dependencies").text(
+          "An optional flag to list all the dependencies imported by workflow and their subworkflows.").
+          action((_, c) =>
+            c.copy(command = Option(Validate(true))))
+      )
 
   cmd("inputs")
     .action((_, c) =>

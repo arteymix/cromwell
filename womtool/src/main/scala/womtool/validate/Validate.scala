@@ -5,14 +5,20 @@ import womtool.WomtoolMain.{SuccessfulTermination, Termination, UnsuccessfulTerm
 import womtool.input.WomGraphMaker
 
 object Validate {
-  def validate(main: Path, inputs: Option[Path]): Termination = if (inputs.isDefined) {
-    WomGraphMaker.fromFiles(main, inputs) match {
-      case Right(_) => SuccessfulTermination("Success!")
+  def validate(main: Path, inputs: Option[Path], listDependencies: Boolean): Termination = if (inputs.isDefined) {
+    WomGraphMaker.fromFiles(main, inputs, listDependencies) match {
+      case Right(v) => {
+        val msg = s"Successfully Validated! The list of workflow dependencies are: ${v._2.mkString("\\n")}"
+        SuccessfulTermination(msg)
+      }
       case Left(errors) => UnsuccessfulTermination(errors.toList.mkString(System.lineSeparator))
     }
   } else {
-    WomGraphMaker.getBundle(main) match {
-      case Right(_) => SuccessfulTermination("Success!")
+    WomGraphMaker.getBundle(main, listDependencies) match {
+      case Right(v) => {
+        val msg = s"Successfully Validated! The list of workflow dependencies are: ${v._2.mkString("\\n")}"
+        SuccessfulTermination(msg)
+      }
       case Left(errors) => UnsuccessfulTermination(errors.toList.mkString(System.lineSeparator))
     }
   }
