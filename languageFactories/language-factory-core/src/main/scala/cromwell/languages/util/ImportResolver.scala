@@ -31,12 +31,20 @@ object ImportResolver {
   case class ResolvedImportBundle(source: WorkflowSource, newResolvers: List[ImportResolver])
 
   trait ImportResolver {
+    private var resolvedImportsList = Seq.empty[String]
+
     def name: String
     protected def innerResolver(path: String, currentResolvers: List[ImportResolver]): Checked[ResolvedImportBundle]
     def resolver: CheckedAtoB[ImportResolutionRequest, ResolvedImportBundle] = CheckedAtoB.fromCheck { request =>
       innerResolver(request.toResolve, request.currentResolvers).contextualizeErrors(s"resolve '${request.toResolve}' using resolver: '$name'")
     }
     def cleanupIfNecessary(): ErrorOr[Unit]
+
+    def updateResolvedImportsList(importPath: String) = {
+      resolvedImportsList = resolvedImportsList :+ importPath
+    }
+
+    def getResolvedImportsList: Seq[String] = resolvedImportsList
   }
 
   object DirectoryResolver {
@@ -96,6 +104,7 @@ object ImportResolver {
         absolutePathToFile <- makeAbsolute(resolvedPath)
         fileContents <- fetchContentFromAbsolutePath(absolutePathToFile)
         updatedResolvers = updatedResolverSet(directory, resolvedPath.parent, currentResolvers)
+        _ = updateResolvedImportsList(absolutePathToFile.getFileName.toString)
       } yield ResolvedImportBundle(fileContents, updatedResolvers)
 
       errorOr.toEither
@@ -186,7 +195,10 @@ object ImportResolver {
             ResolvedImportBundle(_, newResolverList(toLookup))
           }
         } match {
-          case Success(result) => result
+          case Success(result) => {
+            updateResolvedImportsList(str)
+            result
+          }
           case Failure(e) => s"HTTP resolver with headers had an unexpected error (${e.getMessage})".invalidNelCheck
         }).contextualizeErrors(s"download $toLookup")
       }
