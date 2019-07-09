@@ -113,20 +113,6 @@ class WdlDraft2LanguageFactory(override val config: Config) extends LanguageFact
     }
   }
 
-  // TODO: Saloni- can this be written as tail recursive method?
-//  private def recursiveFilesImport(namespace: WdlNamespace): Seq[String] = {
-//    namespace.imports.map(_.uri) ++ namespace.namespaces.flatMap(recursiveFilesImport)
-//  }
-//
-//  private def filesImported(namespace: WdlNamespace) = {
-//    val mainWfImports = recursiveFilesImport(namespace)
-//
-//    println(s"IMPORTS: $mainWfImports")
-//  }
-
-  private def listWorkflowDependencies(namespace: WdlNamespace): Seq[String] = {
-    namespace.imports.map(_.uri) ++ namespace.namespaces.flatMap(listWorkflowDependencies)
-  }
 
   override def getWomBundle(workflowSource: WorkflowSource,
                             workflowOptionsJson: WorkflowOptionsJson,
@@ -136,9 +122,8 @@ class WdlDraft2LanguageFactory(override val config: Config) extends LanguageFact
     for {
       _ <- enabledCheck
       namespace <- WdlNamespace.loadUsingSource(workflowSource, None, Some(importResolvers map resolverConverter)).toChecked
-      workflowDependenciesOption = if(listDependencies) Option(listWorkflowDependencies(namespace)) else None
       womBundle <- namespace.toWomBundle
-    } yield (womBundle, workflowDependenciesOption)
+    } yield (womBundle, None)
   }
 
   override def createExecutable(womBundle: WomBundle, inputs: WorkflowJson, ioFunctions: IoFunctionSet): Checked[ValidatedWomNamespace] = for {
