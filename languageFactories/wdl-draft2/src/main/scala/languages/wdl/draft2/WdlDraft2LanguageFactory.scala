@@ -17,7 +17,7 @@ import common.validation.ErrorOr._
 import common.validation.IOChecked.IOChecked
 import common.validation.Validation._
 import cromwell.core._
-import cromwell.languages.util.ImportResolver.{ImportResolutionRequest, ImportResolver}
+import cromwell.languages.util.ImportResolver.{ImportResolutionRequest, ImportResolver, RootWorkflowResolvedImports}
 import cromwell.languages.util.{ImportResolver, LanguageFactoryUtil}
 import cromwell.languages.{LanguageFactory, ValidatedWomNamespace}
 import languages.wdl.draft2.WdlDraft2LanguageFactory._
@@ -118,12 +118,12 @@ class WdlDraft2LanguageFactory(override val config: Config) extends LanguageFact
                             workflowOptionsJson: WorkflowOptionsJson,
                             importResolvers: List[ImportResolver],
                             languageFactories: List[LanguageFactory],
-                            listDependencies: Boolean = false): Checked[(WomBundle, Option[Seq[String]])] = {
-    for {
+                            listDependencies: Boolean = false): Checked[(WomBundle, Option[RootWorkflowResolvedImports])] = {for {
       _ <- enabledCheck
       namespace <- WdlNamespace.loadUsingSource(workflowSource, None, Some(importResolvers map resolverConverter)).toChecked
       womBundle <- namespace.toWomBundle
-    } yield (womBundle, None)
+      workflowResolvedImports = getResolvedImports(listDependencies, importResolvers)
+    } yield (womBundle, workflowResolvedImports)
   }
 
   override def createExecutable(womBundle: WomBundle, inputs: WorkflowJson, ioFunctions: IoFunctionSet): Checked[ValidatedWomNamespace] = for {
@@ -159,6 +159,6 @@ object WdlDraft2LanguageFactory {
     case Left(errors) => throw new RuntimeException(s"Bad import $str: ${errors.toList.mkString(System.lineSeparator)}")
   }
 
-  val httpResolver = resolverConverter(ImportResolver.HttpResolver())
-  def httpResolverWithHeaders(headers: Map[String, String]) = resolverConverter(ImportResolver.HttpResolver(headers = headers))
+  val httpResolver = resolverConverter(ImportResolver.HttpResolver(new RootWorkflowResolvedImports))
+  def httpResolverWithHeaders(headers: Map[String, String]) = resolverConverter(ImportResolver.HttpResolver(new RootWorkflowResolvedImports, headers = headers))
 }

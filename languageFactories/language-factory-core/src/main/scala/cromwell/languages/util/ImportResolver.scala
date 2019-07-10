@@ -30,9 +30,18 @@ object ImportResolver {
   case class ImportResolutionRequest(toResolve: String, currentResolvers: List[ImportResolver])
   case class ResolvedImportBundle(source: WorkflowSource, newResolvers: List[ImportResolver])
 
-  trait ImportResolver {
+  class RootWorkflowResolvedImports {
     private var resolvedImportsList = Seq.empty[String]
 
+    def updateResolvedImportsList(importPath: String): Unit = {
+      resolvedImportsList = resolvedImportsList :+ importPath
+    }
+
+    def getResolvedImportsList: Seq[String] = resolvedImportsList
+  }
+
+
+  trait ImportResolver {
     def name: String
     protected def innerResolver(path: String, currentResolvers: List[ImportResolver]): Checked[ResolvedImportBundle]
     def resolver: CheckedAtoB[ImportResolutionRequest, ResolvedImportBundle] = CheckedAtoB.fromCheck { request =>
@@ -40,35 +49,34 @@ object ImportResolver {
     }
     def cleanupIfNecessary(): ErrorOr[Unit]
 
-    def updateResolvedImportsList(importPath: String) = {
-      resolvedImportsList = resolvedImportsList :+ importPath
-    }
-
-    def getResolvedImportsList: Seq[String] = resolvedImportsList
+    def getRootWfResolvedImports: RootWorkflowResolvedImports
   }
 
   object DirectoryResolver {
-    def apply(directory: Path, allowEscapingDirectory: Boolean, customName: Option[String]): DirectoryResolver = {
+    def apply(directory: Path, allowEscapingDirectory: Boolean, customName: Option[String], rootWfResolvedImports: RootWorkflowResolvedImports): DirectoryResolver = {
       val dontEscapeFrom = if (allowEscapingDirectory) None else Option(directory.toJava.getCanonicalPath)
-      DirectoryResolver(directory, dontEscapeFrom, customName)
+      DirectoryResolver(directory, dontEscapeFrom, customName, rootWfResolvedImports)
     }
 
-    def localFilesystemResolvers(baseWdl: Option[Path]) = List(
+    def localFilesystemResolvers(baseWdl: Option[Path], rootWfResolvedImports: RootWorkflowResolvedImports) = List(
       DirectoryResolver(
         DefaultPathBuilder.build(Paths.get(".")),
         allowEscapingDirectory = true,
-        customName = None
+        customName = None,
+        rootWfResolvedImports
       ),
       DirectoryResolver(
         DefaultPathBuilder.build(Paths.get("/")),
         allowEscapingDirectory = false,
-        customName = Some("entire local filesystem (relative to '/')")
+        customName = Some("entire local filesystem (relative to '/')"),
+        rootWfResolvedImports
       )
     ) ++ baseWdl.toList.map { rt =>
       DirectoryResolver(
         DefaultPathBuilder.build(Paths.get(rt.toAbsolutePath.toFile.getParent)),
         allowEscapingDirectory = true,
-        customName = None
+        customName = None,
+        rootWfResolvedImports
       )
     }
   }
@@ -76,6 +84,7 @@ object ImportResolver {
   case class DirectoryResolver(directory: Path,
                                dontEscapeFrom: Option[String] = None,
                                customName: Option[String],
+                               rootWfResolvedImports: RootWorkflowResolvedImports,
                                deleteOnClose: Boolean = false) extends ImportResolver {
     lazy val absolutePathToDirectory: String = directory.toJava.getCanonicalPath
 
@@ -83,7 +92,7 @@ object ImportResolver {
 
       def updatedResolverSet(oldRootDirectory: Path, newRootDirectory: Path, current: List[ImportResolver]): List[ImportResolver] = {
         current map {
-          case d if d == this => DirectoryResolver(newRootDirectory, dontEscapeFrom, customName)
+          case d if d == this => DirectoryResolver(newRootDirectory, dontEscapeFrom, customName, rootWfResolvedImports)
           case other => other
         }
       }
@@ -104,7 +113,7 @@ object ImportResolver {
         absolutePathToFile <- makeAbsolute(resolvedPath)
         fileContents <- fetchContentFromAbsolutePath(absolutePathToFile)
         updatedResolvers = updatedResolverSet(directory, resolvedPath.parent, currentResolvers)
-        _ = updateResolvedImportsList(absolutePathToFile.getFileName.toString)
+        _ = rootWfResolvedImports.updateResolvedImportsList(absolutePathToFile.toString)
       } yield ResolvedImportBundle(fileContents, updatedResolvers)
 
       errorOr.toEither
@@ -147,15 +156,17 @@ object ImportResolver {
         }.toErrorOr
       else
         ().validNel
+
+    override def getRootWfResolvedImports: RootWorkflowResolvedImports = rootWfResolvedImports
   }
 
-  def zippedImportResolver(zippedImports: Array[Byte], workflowId: WorkflowId): ErrorOr[DirectoryResolver] = {
+  def zippedImportResolver(zippedImports: Array[Byte], workflowId: WorkflowId, rootWfResolvedImports: RootWorkflowResolvedImports): ErrorOr[DirectoryResolver] = {
     LanguageFactoryUtil.createImportsDirectory(zippedImports, workflowId) map { dir =>
-      DirectoryResolver(dir, Option(dir.toJava.getCanonicalPath), None, deleteOnClose = true)
+      DirectoryResolver(dir, Option(dir.toJava.getCanonicalPath), None, rootWfResolvedImports, deleteOnClose = true)
     }
   }
 
-  case class HttpResolver(relativeTo: Option[String] = None, headers: Map[String, String] = Map.empty) extends ImportResolver {
+  case class HttpResolver(rootWfResolvedImports: RootWorkflowResolvedImports, relativeTo: Option[String] = None, headers: Map[String, String] = Map.empty) extends ImportResolver {
     import HttpResolver._
 
     override def name: String = relativeTo match {
@@ -167,7 +178,7 @@ object ImportResolver {
     def newResolverList(newRoot: String): List[ImportResolver] = {
       val rootWithoutFilename = newRoot.split('/').init.mkString("", "/", "/")
       List(
-        HttpResolver(relativeTo = Some(canonicalize(rootWithoutFilename)), headers)
+        HttpResolver(rootWfResolvedImports, relativeTo = Some(canonicalize(rootWithoutFilename)), headers)
       )
     }
 
@@ -192,19 +203,19 @@ object ImportResolver {
           val result: Checked[String] = Await.result(responseIO.unsafeToFuture, 15.seconds).body.leftMap(NonEmptyList(_, List.empty))
 
           result map {
+            rootWfResolvedImports.updateResolvedImportsList(str)
             ResolvedImportBundle(_, newResolverList(toLookup))
           }
         } match {
-          case Success(result) => {
-            updateResolvedImportsList(str)
-            result
-          }
+          case Success(result) => result
           case Failure(e) => s"HTTP resolver with headers had an unexpected error (${e.getMessage})".invalidNelCheck
         }).contextualizeErrors(s"download $toLookup")
       }
     }
 
     override def cleanupIfNecessary(): ErrorOr[Unit] = ().validNel
+
+    override def getRootWfResolvedImports: RootWorkflowResolvedImports = rootWfResolvedImports
   }
 
   object HttpResolver {
@@ -232,3 +243,6 @@ object ImportResolver {
   }
 
 }
+
+
+case class WorkflowResolvedImports(resolvedImports: Seq[String])

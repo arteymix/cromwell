@@ -21,11 +21,14 @@ import scala.util.Try
 
 object WomGraphMaker {
 
-  def getBundle(mainFile: Path, listDependencies: Boolean = false): Checked[(WomBundle, Option[Seq[String]])] = getBundleAndFactory(mainFile, listDependencies).map(x => (x._1, x._3))
+  def getBundle(mainFile: Path, listDependencies: Boolean = false): Checked[(WomBundle, Option[RootWorkflowResolvedImports])] =
+    getBundleAndFactory(mainFile, listDependencies).map(x => (x._1, x._3))
 
-  private def getBundleAndFactory(mainFile: Path, listDependencies: Boolean): Checked[(WomBundle, LanguageFactory, Option[Seq[String]])] = {
+  private def getBundleAndFactory(mainFile: Path, listDependencies: Boolean): Checked[(WomBundle, LanguageFactory, Option[RootWorkflowResolvedImports])] = {
+    val rootWfResolvedImportsObj = new RootWorkflowResolvedImports
+
     lazy val importResolvers: List[ImportResolver] =
-      DirectoryResolver.localFilesystemResolvers(Some(mainFile)) :+ HttpResolver(relativeTo = None)
+      DirectoryResolver.localFilesystemResolvers(Some(mainFile), rootWfResolvedImportsObj) :+ HttpResolver(rootWfResolvedImportsObj, relativeTo = None)
 
     readFile(mainFile.toAbsolutePath.pathAsString) flatMap { mainFileContents =>
       val languageFactory =
@@ -42,7 +45,7 @@ object WomGraphMaker {
     }
   }
 
-  def fromFiles(mainFile: Path, inputs: Option[Path], listDependencies: Boolean = false): Checked[(Graph, Option[Seq[String]])] = {
+  def fromFiles(mainFile: Path, inputs: Option[Path], listDependencies: Boolean = false): Checked[(Graph, Option[RootWorkflowResolvedImports])] = {
     getBundleAndFactory(mainFile, listDependencies) flatMap { case (womBundle, languageFactory, workflowDependencies) =>
       inputs match {
         case None =>

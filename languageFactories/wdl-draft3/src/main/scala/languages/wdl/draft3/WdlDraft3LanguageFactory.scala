@@ -44,29 +44,29 @@ class WdlDraft3LanguageFactory(override val config: Config) extends LanguageFact
     } yield executable
 
     fromEither[IO](checked)
-
   }
 
   override def getWomBundle(workflowSource: WorkflowSource,
                             workflowOptionsJson: WorkflowOptionsJson,
                             importResolvers: List[ImportResolver],
                             languageFactories: List[LanguageFactory],
-                            listDependencies: Boolean = false): Checked[(WomBundle, Option[Seq[String]])] = {
+                            listDependencies: Boolean = false): Checked[(WomBundle, Option[RootWorkflowResolvedImports])] = {
     val checkEnabled: CheckedAtoB[FileStringParserInput, FileStringParserInput] = CheckedAtoB.fromCheck(x => enabledCheck map(_ => x))
     val converter: CheckedAtoB[FileStringParserInput, WomBundle] = checkEnabled andThen
       stringToAst andThen
       wrapAst andThen
-      astToFileElement.map( x => FileElementToWomBundleInputs(
-        x,
+      astToFileElement.map(FileElementToWomBundleInputs(
+        _,
         workflowOptionsJson,
         importResolvers,
         languageFactories,
         workflowDefinitionElementToWomWorkflowDefinition,
-        taskDefinitionElementToWomTaskDefinition)) andThen
+        taskDefinitionElementToWomTaskDefinition
+      )) andThen
       fileElementToWomBundle
 
-
-    converter.run(FileStringParserInput(workflowSource, "input.wdl")).map((_, None))
+    converter.run(FileStringParserInput(workflowSource, "input.wdl"))
+      .map((_, getResolvedImports(listDependencies, importResolvers)))
   }
 
   override def createExecutable(womBundle: WomBundle, inputsJson: WorkflowJson, ioFunctions: IoFunctionSet): Checked[ValidatedWomNamespace] = {

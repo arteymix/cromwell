@@ -28,6 +28,7 @@ import cromwell.engine.workflow.lifecycle.materialization.MaterializeWorkflowDes
 import cromwell.engine.workflow.lifecycle.materialization.MaterializeWorkflowDescriptorActor.{MaterializeWorkflowDescriptorCommand, MaterializeWorkflowDescriptorFailureResponse, MaterializeWorkflowDescriptorSuccessResponse}
 import cromwell.engine.workflow.workflowstore.WorkflowStoreActor.WorkflowStoreWriteHeartbeatCommand
 import cromwell.engine.workflow.workflowstore.{RestartableAborting, StartableState, WorkflowHeartbeatConfig, WorkflowToStart}
+import cromwell.languages.util.ImportResolver.RootWorkflowResolvedImports
 import cromwell.subworkflowstore.SubWorkflowStoreActor.WorkflowComplete
 import cromwell.webservice.EngineStatsActor
 
@@ -157,7 +158,8 @@ object WorkflowActor {
             workflowHeartbeatConfig: WorkflowHeartbeatConfig,
             totalJobsByRootWf: AtomicInteger,
             fileHashCacheActor: Option[ActorRef],
-            blacklistCache: Option[BlacklistCache]): Props = {
+            blacklistCache: Option[BlacklistCache],
+            rootWfResolvedImports: RootWorkflowResolvedImports): Props = {
     Props(
       new WorkflowActor(
         workflowToStart = workflowToStart,
@@ -177,7 +179,8 @@ object WorkflowActor {
         workflowHeartbeatConfig = workflowHeartbeatConfig,
         totalJobsByRootWf = totalJobsByRootWf,
         fileHashCacheActor = fileHashCacheActor,
-        blacklistCache = blacklistCache)).withDispatcher(EngineDispatcher)
+        blacklistCache = blacklistCache,
+        rootWfResolvedImports = rootWfResolvedImports)).withDispatcher(EngineDispatcher)
   }
 }
 
@@ -201,7 +204,8 @@ class WorkflowActor(workflowToStart: WorkflowToStart,
                     workflowHeartbeatConfig: WorkflowHeartbeatConfig,
                     totalJobsByRootWf: AtomicInteger,
                     fileHashCacheActor: Option[ActorRef],
-                    blacklistCache: Option[BlacklistCache])
+                    blacklistCache: Option[BlacklistCache],
+                    rootWfResolvedImports: RootWorkflowResolvedImports)
   extends LoggingFSM[WorkflowActorState, WorkflowActorData] with WorkflowLogging with WorkflowMetadataHelper
   with WorkflowInstrumentation with Timers {
 
@@ -248,7 +252,14 @@ class WorkflowActor(workflowToStart: WorkflowToStart,
 
   when(WorkflowUnstartedState) {
     case Event(StartWorkflowCommand, _) =>
-      val actor = context.actorOf(MaterializeWorkflowDescriptorActor.props(serviceRegistryActor, workflowId, importLocalFilesystem = !serverMode, ioActorProxy = ioActor, hogGroup = hogGroup),
+      val actor = context.actorOf(MaterializeWorkflowDescriptorActor.props(
+        serviceRegistryActor,
+        workflowId,
+        importLocalFilesystem = !serverMode,
+        ioActorProxy = ioActor,
+        hogGroup = hogGroup,
+        rootWfResolvedImports = rootWfResolvedImports
+      ),
         "MaterializeWorkflowDescriptorActor")
       pushWorkflowStart(workflowId)
       actor ! MaterializeWorkflowDescriptorCommand(sources, conf)

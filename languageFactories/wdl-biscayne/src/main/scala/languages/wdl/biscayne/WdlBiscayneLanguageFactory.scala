@@ -50,10 +50,23 @@ class WdlBiscayneLanguageFactory(override val config: Config) extends LanguageFa
                             workflowOptionsJson: WorkflowOptionsJson,
                             importResolvers: List[ImportResolver],
                             languageFactories: List[LanguageFactory],
-                            listDependencies: Boolean = false): Checked[(WomBundle, Option[Seq[String]])] = {
+                            listDependencies: Boolean = false): Checked[(WomBundle, Option[RootWorkflowResolvedImports])] = {
     val checkEnabled: CheckedAtoB[FileStringParserInput, FileStringParserInput] = CheckedAtoB.fromCheck(x => enabledCheck map(_ => x))
-    val converter: CheckedAtoB[FileStringParserInput, WomBundle] = checkEnabled andThen stringToAst andThen wrapAst andThen astToFileElement.map(FileElementToWomBundleInputs(_, workflowOptionsJson, importResolvers, languageFactories, workflowDefinitionElementToWomWorkflowDefinition, taskDefinitionElementToWomTaskDefinition)) andThen fileElementToWomBundle
-    converter.run(FileStringParserInput(workflowSource, "input.wdl")).map((_, None))
+    val converter: CheckedAtoB[FileStringParserInput, WomBundle] = checkEnabled andThen
+      stringToAst andThen
+      wrapAst andThen
+      astToFileElement.map(FileElementToWomBundleInputs(
+        _,
+        workflowOptionsJson,
+        importResolvers,
+        languageFactories,
+        workflowDefinitionElementToWomWorkflowDefinition,
+        taskDefinitionElementToWomTaskDefinition
+        )) andThen
+      fileElementToWomBundle
+
+    converter.run(FileStringParserInput(workflowSource, "input.wdl"))
+      .map((_, getResolvedImports(listDependencies, importResolvers)))
   }
 
   override def createExecutable(womBundle: WomBundle, inputsJson: WorkflowJson, ioFunctions: IoFunctionSet): Checked[ValidatedWomNamespace] = {

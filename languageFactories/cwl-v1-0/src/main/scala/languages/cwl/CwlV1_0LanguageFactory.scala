@@ -9,7 +9,7 @@ import common.Checked
 import common.validation.Checked._
 import common.validation.IOChecked.IOChecked
 import cromwell.core.{WorkflowId, WorkflowOptions, WorkflowSourceFilesCollection}
-import cromwell.languages.util.ImportResolver.ImportResolver
+import cromwell.languages.util.ImportResolver.{ImportResolver, RootWorkflowResolvedImports}
 import cromwell.languages.util.LanguageFactoryUtil
 import cromwell.languages.{LanguageFactory, ValidatedWomNamespace}
 import cwl.preprocessor.CwlReference
@@ -58,7 +58,7 @@ class CwlV1_0LanguageFactory(override val config: Config) extends LanguageFactor
                             workflowOptionsJson: WorkflowOptionsJson,
                             importResolvers: List[ImportResolver],
                             languageFactories: List[LanguageFactory],
-                            listDependencies: Boolean = false): Checked[(WomBundle, Option[Seq[String]])] =
+                            listDependencies: Boolean = false): Checked[(WomBundle, Option[RootWorkflowResolvedImports])] =
     enabledCheck flatMap { _ => "No getWomBundle method implemented in CWL v1".invalidNelCheck }
 
   override def createExecutable(womBundle: WomBundle, inputs: WorkflowJson, ioFunctions: IoFunctionSet): Checked[ValidatedWomNamespace] =

@@ -4,11 +4,13 @@ import java.nio.file.Paths
 
 import common.assertion.ErrorOrAssertions._
 import cromwell.core.path.DefaultPath
-import cromwell.languages.util.ImportResolver.{DirectoryResolver, HttpResolver}
+import cromwell.languages.util.ImportResolver.{DirectoryResolver, HttpResolver, RootWorkflowResolvedImports}
 import org.scalatest.{FlatSpec, Matchers}
 
 class ImportResolverSpec extends FlatSpec with Matchers {
   behavior of "HttpResolver"
+
+  val emptyRootWfResolvedImports = new RootWorkflowResolvedImports
 
   val canon = Map(
     "http://abc.com:8000/blah?x=5&y=10" -> "http://abc.com:8000/blah?x=5&y=10",
@@ -34,14 +36,14 @@ class ImportResolverSpec extends FlatSpec with Matchers {
   }
 
   it should "resolve a path from no initial root" in {
-    val resolver = HttpResolver()
+    val resolver = HttpResolver(emptyRootWfResolvedImports)
     val toResolve = resolver.pathToLookup("http://abc.com:8000/blah1/blah2.wdl")
     toResolve shouldBeValid "http://abc.com:8000/blah1/blah2.wdl"
   }
 
   behavior of "HttpResolver with a 'relativeTo' value"
 
-  val relativeHttpResolver = HttpResolver(relativeTo = Some("http://abc.com:8000/blah1/blah2/"))
+  val relativeHttpResolver = HttpResolver(emptyRootWfResolvedImports, relativeTo = Some("http://abc.com:8000/blah1/blah2/"))
 
   it should "resolve an abolute path from a different initial root" in {
     val pathToLookup = relativeHttpResolver.pathToLookup("http://def.org:8080/blah3.wdl")
@@ -65,7 +67,7 @@ class ImportResolverSpec extends FlatSpec with Matchers {
 
   behavior of "directory resolver from root"
 
-  val rootDirectoryResolver = DirectoryResolver(DefaultPath(Paths.get("/")), customName = None)
+  val rootDirectoryResolver = DirectoryResolver(DefaultPath(Paths.get("/" )), None, None, emptyRootWfResolvedImports)
 
   it should "resolve a random path" in {
     val pathToLookup = rootDirectoryResolver.resolveAndMakeAbsolute("/path/to/file.wdl")
@@ -74,7 +76,7 @@ class ImportResolverSpec extends FlatSpec with Matchers {
 
   behavior of "unprotected relative directory resolver"
 
-  val relativeDirectoryResolver = DirectoryResolver(DefaultPath(Paths.get("/path/to/imports/")), customName = None)
+  val relativeDirectoryResolver = DirectoryResolver(DefaultPath(Paths.get("/path/to/imports/")),  None, None, emptyRootWfResolvedImports)
 
   it should "resolve an absolute path" in {
     val pathToLookup = relativeDirectoryResolver.resolveAndMakeAbsolute("/path/to/file.wdl")
@@ -88,7 +90,7 @@ class ImportResolverSpec extends FlatSpec with Matchers {
 
   behavior of "protected relative directory resolver"
 
-  val protectedRelativeDirectoryResolver = DirectoryResolver(DefaultPath(Paths.get("/path/to/imports/")), Some("/path/to/imports/"), customName = None)
+  val protectedRelativeDirectoryResolver = DirectoryResolver(DefaultPath(Paths.get("/path/to/imports/")), Some("/path/to/imports/"), customName = None, emptyRootWfResolvedImports)
 
   it should "resolve a good relative path" in {
     val pathToLookup = protectedRelativeDirectoryResolver.resolveAndMakeAbsolute("path/to/file.wdl")

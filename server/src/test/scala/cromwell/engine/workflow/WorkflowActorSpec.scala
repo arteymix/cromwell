@@ -20,6 +20,7 @@ import cromwell.engine.workflow.lifecycle.finalization.WorkflowFinalizationActor
 import cromwell.engine.workflow.lifecycle.initialization.WorkflowInitializationActor.{WorkflowInitializationAbortedResponse, WorkflowInitializationFailedResponse}
 import cromwell.engine.workflow.lifecycle.materialization.MaterializeWorkflowDescriptorActor.MaterializeWorkflowDescriptorFailureResponse
 import cromwell.engine.workflow.workflowstore.{StartableState, Submitted, WorkflowHeartbeatConfig, WorkflowToStart}
+import cromwell.languages.util.ImportResolver.RootWorkflowResolvedImports
 import cromwell.util.SampleWdl.ThreeStep
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.Eventually
@@ -47,7 +48,8 @@ class WorkflowActorSpec extends CromwellTestKitWordSpec with WorkflowDescriptorB
   var currentWorkflowId: WorkflowId = _
   val currentLifecycleActor = TestProbe()
   val workflowSources = ThreeStep.asWorkflowSources(workflowOptions = mockWorkflowOptions)
-  val descriptor = createMaterializedEngineWorkflowDescriptor(WorkflowId.randomId(), workflowSources = workflowSources)
+  val rootWfResolvedImports = new RootWorkflowResolvedImports
+  val descriptor = createMaterializedEngineWorkflowDescriptor(WorkflowId.randomId(), workflowSources = workflowSources, rootWfResolvedImports)
   val supervisorProbe = TestProbe()
   val deathwatch = TestProbe()
   val finalizationProbe = TestProbe()
@@ -83,7 +85,8 @@ class WorkflowActorSpec extends CromwellTestKitWordSpec with WorkflowDescriptorB
         workflowStoreActor = system.actorOf(Props.empty),
         workflowHeartbeatConfig = workflowHeartbeatConfig,
         totalJobsByRootWf = initialJobCtByRootWf,
-        extraPathBuilderFactory = extraPathBuilderFactory
+        extraPathBuilderFactory = extraPathBuilderFactory,
+        rootWfResolvedImports = rootWfResolvedImports
       ),
       supervisor = supervisorProbe.ref)
     actor.setState(stateName = state, stateData = WorkflowActorData(Option(currentLifecycleActor.ref), Option(descriptor),
@@ -230,7 +233,8 @@ class WorkflowActorWithTestAddons(val finalizationProbe: TestProbe,
                                   workflowStoreActor: ActorRef,
                                   workflowHeartbeatConfig: WorkflowHeartbeatConfig,
                                   totalJobsByRootWf: AtomicInteger,
-                                  extraPathBuilderFactory: Option[PathBuilderFactory]) extends WorkflowActor(
+                                  extraPathBuilderFactory: Option[PathBuilderFactory],
+                                  rootWfResolvedImports: RootWorkflowResolvedImports) extends WorkflowActor(
   workflowToStart = WorkflowToStart(id = workflowId,
     submissionTime = OffsetDateTime.now,
     state = startState,
@@ -252,7 +256,8 @@ class WorkflowActorWithTestAddons(val finalizationProbe: TestProbe,
   workflowHeartbeatConfig = workflowHeartbeatConfig,
   totalJobsByRootWf = totalJobsByRootWf,
   fileHashCacheActor = None,
-  blacklistCache = None) {
+  blacklistCache = None,
+  rootWfResolvedImports = rootWfResolvedImports) {
 
   override val pathBuilderFactories: List[PathBuilderFactory] = extraPathBuilderFactory match {
     case Some(pbf) => EngineFilesystems.configuredPathBuilderFactories :+ pbf

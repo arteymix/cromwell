@@ -60,9 +60,22 @@ object MaterializeWorkflowDescriptorActor {
   // exception if not initialized yet.
   private def cromwellBackends = CromwellBackends.instance.get
 
-  def props(serviceRegistryActor: ActorRef, workflowId: WorkflowId, cromwellBackends: => CromwellBackends = cromwellBackends,
-            importLocalFilesystem: Boolean, ioActorProxy: ActorRef, hogGroup: HogGroup): Props = {
-    Props(new MaterializeWorkflowDescriptorActor(serviceRegistryActor, workflowId, cromwellBackends, importLocalFilesystem, ioActorProxy, hogGroup)).withDispatcher(EngineDispatcher)
+  def props(serviceRegistryActor: ActorRef,
+            workflowId: WorkflowId,
+            cromwellBackends: => CromwellBackends = cromwellBackends,
+            importLocalFilesystem: Boolean,
+            ioActorProxy: ActorRef,
+            hogGroup: HogGroup,
+            rootWfResolvedImports: RootWorkflowResolvedImports): Props = {
+    Props(new MaterializeWorkflowDescriptorActor(
+      serviceRegistryActor,
+      workflowId,
+      cromwellBackends,
+      importLocalFilesystem,
+      ioActorProxy,
+      hogGroup,
+      rootWfResolvedImports)
+    ).withDispatcher(EngineDispatcher)
   }
 
   /*
@@ -138,7 +151,8 @@ class MaterializeWorkflowDescriptorActor(serviceRegistryActor: ActorRef,
                                          cromwellBackends: => CromwellBackends,
                                          importLocalFilesystem: Boolean,
                                          ioActorProxy: ActorRef,
-                                         hogGroup: HogGroup) extends LoggingFSM[MaterializeWorkflowDescriptorActorState, Unit] with StrictLogging with WorkflowLogging {
+                                         hogGroup: HogGroup,
+                                         rootWfResolvedImports: RootWorkflowResolvedImports) extends LoggingFSM[MaterializeWorkflowDescriptorActorState, Unit] with StrictLogging with WorkflowLogging {
 
   import MaterializeWorkflowDescriptorActor._
   val tag = self.path.name
@@ -256,12 +270,12 @@ class MaterializeWorkflowDescriptorActor(serviceRegistryActor: ActorRef,
     }
 
     val localFilesystemResolvers =
-      if (importLocalFilesystem) DirectoryResolver.localFilesystemResolvers(None)
+      if (importLocalFilesystem) DirectoryResolver.localFilesystemResolvers(baseWdl = None, rootWfResolvedImports)
       else List.empty
 
     val zippedResolverCheck: IOChecked[Option[DirectoryResolver]] = fromEither[IO](sourceFiles.importsZipFileOption match {
       case None => None.validNelCheck
-      case Some(zipContent) => zippedImportResolver(zipContent, workflowId).toEither.map(Option.apply)
+      case Some(zipContent) => zippedImportResolver(zipContent, workflowId, rootWfResolvedImports).toEither.map(Option.apply)
     })
 
     val labels = convertJsonToLabels(sourceFiles.labelsJson)
@@ -269,7 +283,7 @@ class MaterializeWorkflowDescriptorActor(serviceRegistryActor: ActorRef,
     for {
       _ <- publishLabelsToMetadata(id, labels)
       zippedImportResolver <- zippedResolverCheck
-      importResolvers = zippedImportResolver.toList ++ localFilesystemResolvers :+ HttpResolver(None, Map.empty)
+      importResolvers = zippedImportResolver.toList ++ localFilesystemResolvers :+ HttpResolver(rootWfResolvedImports, None, Map.empty)
       sourceAndResolvers <- fromEither[IO](LanguageFactoryUtil.findWorkflowSource(sourceFiles.workflowSource, sourceFiles.workflowUrl, importResolvers))
       _ = if(sourceFiles.workflowUrl.isDefined) publishWorkflowSourceToMetadata(id, sourceAndResolvers._1)
       factory <- findFactory(sourceAndResolvers._1).toIOChecked
