@@ -14,7 +14,11 @@ object Validate {
       val dependenciesMsg = if (listDependencies) {
         val msgPrefix = "\nList of Workflow dependencies are:\n"
         val dependenciesList = workflowResolvedImports match {
-          case Some(imports) => imports.getResolvedImportsList.mkString("\n")
+          case Some(imports) => {
+            val a = imports.getResolvedImportsList
+             if (a.nonEmpty) a.mkString("\n")
+             else "None"
+          }
           case None => "None"
         }
         msgPrefix + dependenciesList
