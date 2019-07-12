@@ -61,6 +61,4 @@ package object ast2wdlom {
   implicit val astToFileElement: CheckedAtoB[GenericAst, FileElement] = AstToFileElement.astToFileElement
   implicit val fileToFileElement: CheckedAtoB[File, FileElement] = fileToAst andThen wrapAst andThen astToFileElement
 
-//  implicit val astToWorkflowDependencies: CheckedAtoB[GenericAst, FileElement] =
-
 }

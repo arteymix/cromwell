@@ -54,11 +54,11 @@ class CwlV1_0LanguageFactory(override val config: Config) extends LanguageFactor
     } yield validatedWomNamespace
   }
 
-  override def getWomBundle(workflowSource: WorkflowSource,
-                            workflowOptionsJson: WorkflowOptionsJson,
-                            importResolvers: List[ImportResolver],
-                            languageFactories: List[LanguageFactory],
-                            listDependencies: Boolean = false): Checked[(WomBundle, Option[RootWorkflowResolvedImports])] =
+  override def getWomBundleWithImports(workflowSource: WorkflowSource,
+                                       workflowOptionsJson: WorkflowOptionsJson,
+                                       importResolvers: List[ImportResolver],
+                                       languageFactories: List[LanguageFactory],
+                                       listDependencies: Boolean = false): Checked[(WomBundle, Option[RootWorkflowResolvedImports])] =
     enabledCheck flatMap { _ => "No getWomBundle method implemented in CWL v1".invalidNelCheck }
 
   override def createExecutable(womBundle: WomBundle, inputs: WorkflowJson, ioFunctions: IoFunctionSet): Checked[ValidatedWomNamespace] =

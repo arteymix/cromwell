@@ -39,9 +39,9 @@ object WomGraphMaker {
           .find(_.looksParsable(mainFileContents))
           .getOrElse(new WdlDraft2LanguageFactory(ConfigFactory.empty()))
 
-      val bundleWithDependencies = languageFactory.getWomBundle(mainFileContents, "{}", importResolvers, List(languageFactory), listDependencies)
+      val bundleWithImports = languageFactory.getWomBundleWithImports(mainFileContents, "{}", importResolvers, List(languageFactory), listDependencies)
       // Return the pair with the languageFactory
-      bundleWithDependencies.map(bd => (bd._1, languageFactory, bd._2))
+      bundleWithImports.map(bd => (bd._1, languageFactory, bd._2))
     }
   }
 

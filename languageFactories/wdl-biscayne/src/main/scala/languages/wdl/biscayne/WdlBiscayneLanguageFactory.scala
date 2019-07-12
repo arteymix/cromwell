@@ -38,19 +38,19 @@ class WdlBiscayneLanguageFactory(override val config: Config) extends LanguageFa
 
     val checked: Checked[ValidatedWomNamespace] = for {
       _ <- enabledCheck
-      bundleWithDependencies <- getWomBundle(workflowSource, source.workflowOptions.asPrettyJson, importResolvers, factories)
-      executable <- createExecutable(bundleWithDependencies._1, source.inputsJson, ioFunctions)
+      bundleWithImports <- getWomBundleWithImports(workflowSource, source.workflowOptions.asPrettyJson, importResolvers, factories)
+      executable <- createExecutable(bundleWithImports._1, source.inputsJson, ioFunctions)
     } yield executable
 
     fromEither[IO](checked)
 
   }
 
-  override def getWomBundle(workflowSource: WorkflowSource,
-                            workflowOptionsJson: WorkflowOptionsJson,
-                            importResolvers: List[ImportResolver],
-                            languageFactories: List[LanguageFactory],
-                            listDependencies: Boolean = false): Checked[(WomBundle, Option[RootWorkflowResolvedImports])] = {
+  override def getWomBundleWithImports(workflowSource: WorkflowSource,
+                                       workflowOptionsJson: WorkflowOptionsJson,
+                                       importResolvers: List[ImportResolver],
+                                       languageFactories: List[LanguageFactory],
+                                       listDependencies: Boolean = false): Checked[(WomBundle, Option[RootWorkflowResolvedImports])] = {
     val checkEnabled: CheckedAtoB[FileStringParserInput, FileStringParserInput] = CheckedAtoB.fromCheck(x => enabledCheck map(_ => x))
     val converter: CheckedAtoB[FileStringParserInput, WomBundle] = checkEnabled andThen
       stringToAst andThen
@@ -65,8 +65,7 @@ class WdlBiscayneLanguageFactory(override val config: Config) extends LanguageFa
         )) andThen
       fileElementToWomBundle
 
-    converter.run(FileStringParserInput(workflowSource, "input.wdl"))
-      .map((_, getResolvedImports(listDependencies, importResolvers)))
+    converter.run(FileStringParserInput(workflowSource, "input.wdl")).map((_, getResolvedImports(listDependencies, importResolvers)))
   }
 
   override def createExecutable(womBundle: WomBundle, inputsJson: WorkflowJson, ioFunctions: IoFunctionSet): Checked[ValidatedWomNamespace] = {

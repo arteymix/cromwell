@@ -33,11 +33,11 @@ trait LanguageFactory {
     case _ => None.validNelCheck
   }
 
-  def getWomBundle(workflowSource: WorkflowSource,
-                   workflowOptionsJson: WorkflowOptionsJson,
-                   importResolvers: List[ImportResolver],
-                   languageFactories: List[LanguageFactory],
-                   listDependencies: Boolean = false): Checked[(WomBundle, Option[RootWorkflowResolvedImports])]
+  def getWomBundleWithImports(workflowSource: WorkflowSource,
+                              workflowOptionsJson: WorkflowOptionsJson,
+                              importResolvers: List[ImportResolver],
+                              languageFactories: List[LanguageFactory],
+                              listDependencies: Boolean = false): Checked[(WomBundle, Option[RootWorkflowResolvedImports])]
 
   def createExecutable(womBundle: WomBundle,
                        inputs: WorkflowJson,

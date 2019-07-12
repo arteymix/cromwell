@@ -11,9 +11,6 @@ import scala.collection.immutable
 
 class WomtoolValidateSpec extends FlatSpec with Matchers {
 
-  private def mustExist(file: java.io.File): java.io.File = if (file.exists) file else fail(s"No such file: ${file.getAbsolutePath}")
-  private def ifExists(file: java.io.File): Option[java.io.File] = if (file.exists) Option(file) else None
-
   private def httpImportTestCaseImport(language: String) =
     s"https://raw.githubusercontent.com/broadinstitute/cromwell/5e0197d1c016d4c802ef3c2890f0ca4e0ca542c1/womtool/src/test/resources/validate/$language/valid/task_only/task_only.wdl"
 
@@ -141,4 +138,7 @@ class WomtoolValidateSpec extends FlatSpec with Matchers {
       runInvalidTestCase(versionName, invalidCase, withInputsAddition, inputsFile, Seq("validate", "-l"), testNameSuffixForDependenciesFlag)
     }
   }
+
+  private def mustExist(file: java.io.File): java.io.File = if (file.exists) file else fail(s"No such file: ${file.getAbsolutePath}")
+  private def ifExists(file: java.io.File): Option[java.io.File] = if (file.exists) Option(file) else None
 }

@@ -9,21 +9,22 @@ object Validate {
 
   def validate(main: Path, inputs: Option[Path], listDependencies: Boolean): Termination = {
 
+    def workflowDependenciesMsg(workflowResolvedImports: Option[RootWorkflowResolvedImports]) = {
+      val msgPrefix = "\nList of Workflow dependencies are:\n"
+      val dependenciesList = workflowResolvedImports match {
+        case Some(imports) => {
+          val importsList = imports.getResolvedImportsList
+          if (importsList.nonEmpty) importsList.mkString("\n")
+          else "None"
+        }
+        case None => "None"
+      }
+      msgPrefix + dependenciesList
+    }
+
     def validationSuccessMsg(workflowResolvedImports: Option[RootWorkflowResolvedImports]): String = {
       val successMsg = "Success!"
-      val dependenciesMsg = if (listDependencies) {
-        val msgPrefix = "\nList of Workflow dependencies are:\n"
-        val dependenciesList = workflowResolvedImports match {
-          case Some(imports) => {
-            val a = imports.getResolvedImportsList
-             if (a.nonEmpty) a.mkString("\n")
-             else "None"
-          }
-          case None => "None"
-        }
-        msgPrefix + dependenciesList
-      } else ""
-
+      val dependenciesMsg = if (listDependencies) workflowDependenciesMsg(workflowResolvedImports) else ""
       successMsg + dependenciesMsg
     }
 
