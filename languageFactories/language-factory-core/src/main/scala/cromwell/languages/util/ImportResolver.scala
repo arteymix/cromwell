@@ -31,13 +31,13 @@ object ImportResolver {
   case class ResolvedImportBundle(source: WorkflowSource, newResolvers: List[ImportResolver])
 
   class RootWorkflowResolvedImports {
-    private var resolvedImportsList = Seq.empty[String]
+    private var resolvedImportsList = Set.empty[String]
 
     def updateResolvedImportsList(importPath: String): Unit = {
-      resolvedImportsList = resolvedImportsList :+ importPath
+      resolvedImportsList = resolvedImportsList + importPath
     }
 
-    def getResolvedImportsList: Seq[String] = resolvedImportsList
+    def getResolvedImportsList: Set[String] = resolvedImportsList
   }
 
 
