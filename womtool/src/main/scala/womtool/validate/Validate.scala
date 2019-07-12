@@ -10,7 +10,7 @@ object Validate {
   def validate(main: Path, inputs: Option[Path], listDependencies: Boolean): Termination = {
 
     def validationSuccessMsg(workflowResolvedImports: Option[RootWorkflowResolvedImports]): String = {
-      val successMsg = "Successfully Validated!"
+      val successMsg = "Success!"
       val dependenciesMsg = if (listDependencies) {
         val msgPrefix = "\nList of Workflow dependencies are:\n"
         val dependenciesList = workflowResolvedImports match {
