@@ -64,7 +64,7 @@ class WomtoolCommandLineParser extends scopt.OptionParser[PartialWomtoolCommandL
     .text("Validate a workflow source file. If inputs are provided then 'validate' also checks that the inputs file is a valid set of inputs for the workflow." + System.lineSeparator)
       .children(
         opt[Unit]('l', "list-dependencies").text(
-          "An optional flag to list all the dependencies imported by workflow and their subworkflows.").
+          "An optional flag to list files referenced in import statements.").
           action((_, c) =>
             c.copy(command = Option(Validate(true))))
       )

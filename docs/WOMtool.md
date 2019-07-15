@@ -25,10 +25,13 @@ Run the JAR file with no arguments to get the usage message:
 java -jar /path/to/womtool.jar <action> <parameters>
 
 Actions:
-validate <WDL file>
+validate [options] <WDL file>
 
   Performs full validation of the WDL file including syntax
   and semantic checking
+
+  options:
+  -l, --list-dependencies  An optional flag to list files referenced in import statements.
 
 inputs <WDL file>
 
@@ -96,6 +99,20 @@ Import statement defined here (line 1, col 20):
 
 import "ps.wdl" as ps
                    ^
+```
+
+##### --list-dependencies or -l flag
+
+For a successful validation, this will output the list of files referenced in import statements in workflows and their subworkflows.
+
+`$ java -jar womtool.jar validate -l myWdl.wdl`
+
+```hocon
+Success!
+List of Workflow dependencies are:
+/path/to/my/import/myImport.wdl
+/path/to/another/import/anotherImport.wdl
+https://path-to-http-import/httpImort.wdl
 ```
 
 ### `inputs`

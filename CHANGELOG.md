@@ -1,5 +1,12 @@
 # Cromwell Change Log
 
+## 45 Release Notes
+
+### List dependencies flag in WOMtool Command Line 
+
+Cromwell now outputs the list of files referenced in import statements using `-l` flag for `validate` command.
+More info [here](https://cromwell.readthedocs.io/en/stable/WOMtool/)
+
 ## 44 Release Notes
 
 ### Improved PAPI v2 Preemptible VM Support
