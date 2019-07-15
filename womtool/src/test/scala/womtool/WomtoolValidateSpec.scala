@@ -26,20 +26,26 @@ class WomtoolValidateSpec extends FlatSpec with Matchers {
   val dependenciesMsgPrefix = "Success!\nList of Workflow dependencies are:\n"
   val testNameSuffixForDependenciesFlag = " with --list-dependencies flag"
 
-  def draft2And3TestsWithDependenciesFlag(language: String) = Set(
-    ("http_import", httpImportTestCaseImport(language)),
-    ("relative_local_import", "../task_only/task_only.wdl"),
-    ("subworkflow_input", "subworkflow.wdl"),
-    ("task_only", "None")
-  ).map(x => (x._1, dependenciesMsgPrefix + x._2))
+  def draft2And3TestsWithDependenciesFlag(language: String): Set[(String, List[String])] = Set(
+    ("http_import", List(httpImportTestCaseImport(language))),
+    ("relative_local_import", List("/task_only/task_only.wdl")),
+    ("subworkflow_input", List("subworkflow.wdl")),
+    ("task_only", List("None"))
+  )
 
-  val biscayneTestsWithDependenciesFlag = Set (
-    ("afters_and_scatters", "None"),
-    ("http_relative_imports", "https://raw.githubusercontent.com/broadinstitute/cromwell/develop/womtool/src/test/resources/validate/biscayne/valid/relative_imports/sub_wfs/foo.wdl\n../structs/my_struct.wdl\ntasks/add5.wdl\n../../structs/my_struct.wdl"),
-    ("relative_imports", "sub_wfs/foo.wdl\n../structs/my_struct.wdl\ntasks/add5.wdl\n../../structs/my_struct.wdl")
-  ).map(x => (x._1, dependenciesMsgPrefix + x._2))
+  val biscayneTestsWithDependenciesFlag: Set[(String, List[String])] = Set (
+    ("afters_and_scatters", List("None")),
+    ("http_relative_imports", List("https://raw.githubusercontent.com/broadinstitute/cromwell/develop/womtool/src/test/resources/validate/biscayne/valid/relative_imports/sub_wfs/foo.wdl",
+      "/structs/my_struct.wdl",
+      "tasks/add5.wdl",
+      "/structs/my_struct.wdl")),
+    ("relative_imports", List("sub_wfs/foo.wdl",
+      "/structs/my_struct.wdl",
+      "tasks/add5.wdl",
+      "/structs/my_struct.wdl"))
+  )
 
-  val testExpectationsWithDependenciesFlag = Set (
+  val testExpectationsWithDependenciesFlag: Set[(String, Set[(String, List[String])])] = Set (
     ("biscayne", biscayneTestsWithDependenciesFlag),
     ("wdl_draft2", draft2And3TestsWithDependenciesFlag("wdl_draft2")),
     ("wdl_draft3", draft2And3TestsWithDependenciesFlag("wdl_draft3"))
@@ -63,8 +69,8 @@ class WomtoolValidateSpec extends FlatSpec with Matchers {
                          validCase: String,
                          withInputsAddition: String,
                          inputsFile: Option[java.io.File],
-                         expectedMsg: String,
                          commandPrefix: Seq[String],
+                         expectedDependenciesList: Option[List[String]] = None,
                          testNameSuffix: String = "") = {
       it should s"successfully validate $versionName workflow: '$validCase'$withInputsAddition$testNameSuffix" in {
         val wdl = mustExist(validTestCases.resolve(validCase).resolve(validCase + ".wdl").toFile)
@@ -73,7 +79,16 @@ class WomtoolValidateSpec extends FlatSpec with Matchers {
           case None => Seq.empty[String]
         }
 
-        WomtoolMain.runWomtool(commandPrefix ++ Seq(wdl.getAbsolutePath) ++ inputsArgs) should be(SuccessfulTermination(expectedMsg))
+        expectedDependenciesList match {
+          case None => WomtoolMain.runWomtool(commandPrefix ++ Seq(wdl.getAbsolutePath) ++ inputsArgs) should be(SuccessfulTermination("Success!"))
+          case Some(dependenciesList) => {
+            val res = WomtoolMain.runWomtool(commandPrefix ++ Seq(wdl.getAbsolutePath) ++ inputsArgs)
+            assert(res.isInstanceOf[SuccessfulTermination])
+            val stdout = res.stdout.get
+            stdout should include(dependenciesMsgPrefix)
+            dependenciesList.foreach(stdout should include(_))
+          }
+        }
       }
     }
 
@@ -116,18 +131,20 @@ class WomtoolValidateSpec extends FlatSpec with Matchers {
       it should s"run $versionName test '$ignoredCase'" ignore {}
     }
 
+    // Test valid test cases
     listFilesAndFilterDSFile(validTestCases) foreach { validCase =>
       val inputsFile = ifExists(validTestCases.resolve(validCase).resolve(validCase + ".inputs.json").toFile)
       val withInputsAddition = if (inputsFile.isDefined) " and inputs file" else ""
 
-      runValidTestCase(versionName, validCase, withInputsAddition, inputsFile, "Success!", Seq("validate"))
+      runValidTestCase(versionName, validCase, withInputsAddition, inputsFile, Seq("validate"))
 
-      //run validate with --list-dependencies flag if success message for the test exists in `testExpectationsWithDependenciesFlag`
+      //run validate with --list-dependencies flag if dependencies list for the test exists in `testExpectationsWithDependenciesFlag`
       val languageTestExpectations = testExpectationsWithDependenciesFlag.collect { case (l, s) if l.equalsIgnoreCase(versionName) => s}.flatten
-      val expectedMsgOption = languageTestExpectations.find(_._1 == validCase).map(_._2)
-      expectedMsgOption.foreach(runValidTestCase(versionName, validCase, withInputsAddition, inputsFile, _, Seq("validate", "-l"), testNameSuffixForDependenciesFlag))
+      val expectedDependenciesOption = languageTestExpectations.find(_._1 == validCase).map(_._2)
+      expectedDependenciesOption.foreach(_ => runValidTestCase(versionName, validCase, withInputsAddition, inputsFile, Seq("validate", "-l"), expectedDependenciesOption, testNameSuffixForDependenciesFlag))
     }
 
+    // Test invalid test cases
     listFilesAndFilterDSFile(invalidTestCases) foreach { invalidCase =>
       val inputsFile = ifExists(invalidTestCases.resolve(invalidCase).resolve(invalidCase + ".inputs.json").toFile)
       val withInputsAddition = if (inputsFile.isDefined) " and inputs file" else ""

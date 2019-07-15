@@ -113,7 +113,7 @@ object ImportResolver {
         absolutePathToFile <- makeAbsolute(resolvedPath)
         fileContents <- fetchContentFromAbsolutePath(absolutePathToFile)
         updatedResolvers = updatedResolverSet(directory, resolvedPath.parent, currentResolvers)
-        _ = rootWfResolvedImports.updateResolvedImportsList(path)
+        _ = rootWfResolvedImports.updateResolvedImportsList(absolutePathToFile.toString)
       } yield ResolvedImportBundle(fileContents, updatedResolvers)
 
       errorOr.toEither
