@@ -11,6 +11,7 @@ import cromwell.backend.google.pipelines.v2alpha1.api.ActionBuilder._
 import cromwell.backend.google.pipelines.v2alpha1.api.ActionCommands._
 import cromwell.backend.google.pipelines.v2alpha1.api.{ActionBuilder, ActionFlag}
 import cromwell.filesystems.drs.DrsPath
+import cromwell.filesystems.gcs.GcsPath
 import cromwell.filesystems.http.HttpPath
 import cromwell.filesystems.sra.SraPath
 import simulacrum.typeclass
@@ -18,11 +19,6 @@ import simulacrum.typeclass
 import scala.language.implicitConversions
 @typeclass trait ToParameter[A <: PipelinesParameter] {
   def toActions(p: A, mounts: List[Mount])(implicit localizationConfiguration: LocalizationConfiguration): NonEmptyList[Action]
-  def toMount(p: A): Mount = {
-    new Mount()
-      .setDisk(p.mount.name)
-      .setPath(p.mount.mountPoint.pathAsString)
-  }
 }
 
 trait PipelinesParameterConversions {
@@ -36,6 +32,7 @@ trait PipelinesParameterConversions {
       val localizationAction = fileInput.cloudPath match {
         case drsPath: DrsPath =>
           import cromwell.backend.google.pipelines.v2alpha1.api.ActionCommands.ShellPath
+
           import collection.JavaConverters._
 
           val drsFileSystemProvider = drsPath.drsPath.getFileSystem.provider.asInstanceOf[DrsCloudNioFileSystemProvider]
@@ -168,5 +165,39 @@ trait PipelinesParameterConversions {
       case fileOutput: PipelinesApiFileOutput => fileOutputToParameter.toActions(fileOutput, mounts)
       case directoryOutput: PipelinesApiDirectoryOutput => directoryOutputToParameter.toActions(directoryOutput, mounts)
     }
+  }
+}
+
+object PipelinesParameterConversions {
+  import cromwell.backend.google.pipelines.v2alpha1.PipelinesConversions._
+  import cromwell.backend.google.pipelines.v2alpha1.ToParameter.ops._
+
+  def groupedGcsFileInputActions(inputs: List[PipelinesApiFileInput], mounts: List[Mount])(implicit localizationConfiguration: LocalizationConfiguration): List[Action] = {
+    // Build an Action for all the files.
+    val command = inputs.map { i => localizeFile(i.cloudPath, i.containerPath, exitOnSuccess = false) } mkString "\n"
+    List(cloudSdkShellAction(command)(mounts = mounts, labels = Map(Key.Tag -> Value.Localization)))
+  }
+
+  def groupedGcsDirectoryInputActions(inputs: List[PipelinesApiDirectoryInput], mounts: List[Mount])(implicit localizationConfiguration: LocalizationConfiguration): List[Action] = {
+    // Build an Action for all the directories.
+    val command = inputs map { i => localizeDirectory(i.cloudPath, i.containerPath, exitOnSuccess = false) } mkString "\n"
+    List(cloudSdkShellAction(command)(mounts = mounts, labels = Map(Key.Tag -> Value.Localization)))
+  }
+
+  def groupedGcsInputActions(gcsInputs: List[PipelinesApiInput], mounts: List[Mount])(implicit localizationConfiguration: LocalizationConfiguration): List[Action] = {
+    val filesList = List(gcsInputs collect { case i: PipelinesApiFileInput => i })
+    val directoriesList = List(gcsInputs collect { case i: PipelinesApiDirectoryInput => i })
+
+    // The flatMapping is to avoid calling the relevant `grouped...` method if there are no inputs of that type.
+    filesList.flatMap { files => groupedGcsFileInputActions(files, mounts)} ++
+      directoriesList.flatMap { directories => groupedGcsDirectoryInputActions(directories, mounts) }
+  }
+
+  def groupedLocalizationActions(ps: List[PipelinesApiInput], mounts: List[Mount])(implicit localizationConfiguration: LocalizationConfiguration): List[Action] = {
+    val (gcsInputs, nonGcsInputs) = ps partition { _.cloudPath.isInstanceOf[GcsPath] }
+
+    val nonGcsInputActions: List[Action] = nonGcsInputs.flatMap { _.toActions(mounts).toList }
+
+    groupedGcsInputActions(gcsInputs, mounts) ++ nonGcsInputActions
   }
 }
