@@ -32,7 +32,6 @@ trait PipelinesParameterConversions {
       val localizationAction = fileInput.cloudPath match {
         case drsPath: DrsPath =>
           import cromwell.backend.google.pipelines.v2alpha1.api.ActionCommands.ShellPath
-
           import collection.JavaConverters._
 
           val drsFileSystemProvider = drsPath.drsPath.getFileSystem.provider.asInstanceOf[DrsCloudNioFileSystemProvider]
