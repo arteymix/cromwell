@@ -172,19 +172,27 @@ object PipelinesParameterConversions {
   import cromwell.backend.google.pipelines.v2alpha1.ToParameter.ops._
 
   def groupedGcsFileInputActions(inputs: List[PipelinesApiFileInput], mounts: List[Mount])(implicit localizationConfiguration: LocalizationConfiguration): List[Action] = {
-    // Build an Action for all the files.
-    val command = inputs.map { i => localizeFile(i.cloudPath, i.containerPath, exitOnSuccess = false) } mkString "\n"
+    // Build an Action for groups of files.
+    val commands = for {
+      grouping <- inputs.grouped(2)
+      command = inputs.map { i => localizeFile(i.cloudPath, i.containerPath, exitOnSuccess = false) } mkString "\n"
+    } yield command
+
     val labels = Map(
       Key.Tag -> Value.Localization,
       Key.InputName -> "Input files"
     )
-    List(cloudSdkShellAction(command)(mounts = mounts, labels = labels))
+    commands.toList map { command => cloudSdkShellAction(command)(mounts = mounts, labels = labels) }
   }
 
   def groupedGcsDirectoryInputActions(inputs: List[PipelinesApiDirectoryInput], mounts: List[Mount])(implicit localizationConfiguration: LocalizationConfiguration): List[Action] = {
     // Build an Action for all the directories.
     val command = inputs map { i => localizeDirectory(i.cloudPath, i.containerPath, exitOnSuccess = false) } mkString "\n"
-    List(cloudSdkShellAction(command)(mounts = mounts, labels = Map(Key.Tag -> Value.Localization)))
+    val labels = Map(
+      Key.Tag -> Value.Localization,
+      Key.InputName -> "Input directories"
+    )
+    List(cloudSdkShellAction(command)(mounts = mounts, labels = labels))
   }
 
   def groupedGcsInputActions(gcsInputs: List[PipelinesApiInput], mounts: List[Mount])(implicit localizationConfiguration: LocalizationConfiguration): List[Action] = {
@@ -192,13 +200,12 @@ object PipelinesParameterConversions {
     val directoriesList = List(gcsInputs collect { case i: PipelinesApiDirectoryInput => i })
 
     // The flatMapping is to avoid calling the relevant `grouped...` method if there are no inputs of that type.
-    filesList.flatMap { files => groupedGcsFileInputActions(files, mounts)} ++
+    filesList.flatMap { files => groupedGcsFileInputActions(files, mounts) } ++
       directoriesList.flatMap { directories => groupedGcsDirectoryInputActions(directories, mounts) }
   }
 
   def groupedLocalizationActions(ps: List[PipelinesApiInput], mounts: List[Mount])(implicit localizationConfiguration: LocalizationConfiguration): List[Action] = {
     val (gcsInputs, nonGcsInputs) = ps partition { _.cloudPath.isInstanceOf[GcsPath] }
-
     val nonGcsInputActions: List[Action] = nonGcsInputs.flatMap { _.toActions(mounts).toList }
 
     groupedGcsInputActions(gcsInputs, mounts) ++ nonGcsInputActions
