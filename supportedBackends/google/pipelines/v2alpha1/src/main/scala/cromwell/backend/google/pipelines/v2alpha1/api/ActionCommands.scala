@@ -85,7 +85,7 @@ object ActionCommands {
 
   def doRetry(exitOnSuccess: Boolean)(f: => String)(implicit localizationConfiguration: LocalizationConfiguration, wait: FiniteDuration): String = {
     // With ungrouped localizations this script should always exit, for grouped localizations only exit on failure.
-    val exitOrNot = if (exitOnSuccess) "exit $RC" else """if [ "$RC" != "0" ]; then exit "$RC"; fi"""
+    val exitOrNot = if (exitOnSuccess) """exit "$RC"""" else """if [ "$RC" != "0" ]; then exit "$RC"; fi"""
 
     s"""for i in $$(seq ${localizationConfiguration.localizationAttempts}); do
        |  (

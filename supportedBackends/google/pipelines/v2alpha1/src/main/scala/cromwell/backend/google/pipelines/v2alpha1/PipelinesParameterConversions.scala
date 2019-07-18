@@ -174,7 +174,11 @@ object PipelinesParameterConversions {
   def groupedGcsFileInputActions(inputs: List[PipelinesApiFileInput], mounts: List[Mount])(implicit localizationConfiguration: LocalizationConfiguration): List[Action] = {
     // Build an Action for all the files.
     val command = inputs.map { i => localizeFile(i.cloudPath, i.containerPath, exitOnSuccess = false) } mkString "\n"
-    List(cloudSdkShellAction(command)(mounts = mounts, labels = Map(Key.Tag -> Value.Localization)))
+    val labels = Map(
+      Key.Tag -> Value.Localization,
+      Key.InputName -> "Input files"
+    )
+    List(cloudSdkShellAction(command)(mounts = mounts, labels = labels))
   }
 
   def groupedGcsDirectoryInputActions(inputs: List[PipelinesApiDirectoryInput], mounts: List[Mount])(implicit localizationConfiguration: LocalizationConfiguration): List[Action] = {
