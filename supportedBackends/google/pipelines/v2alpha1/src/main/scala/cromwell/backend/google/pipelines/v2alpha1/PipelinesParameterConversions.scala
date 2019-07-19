@@ -172,7 +172,7 @@ object PipelinesParameterConversions {
   import cromwell.backend.google.pipelines.v2alpha1.ToParameter.ops._
 
   def groupedGcsFileInputActions(inputs: List[PipelinesApiFileInput], mounts: List[Mount])(implicit localizationConfiguration: LocalizationConfiguration): List[Action] = {
-    // Build an Action for groups of files.
+    // Build Actions for groups of files.
     import mouse.all._
     val commands = for {
       grouping <- inputs.grouped(10)
@@ -192,13 +192,23 @@ object PipelinesParameterConversions {
   }
 
   def groupedGcsDirectoryInputActions(inputs: List[PipelinesApiDirectoryInput], mounts: List[Mount])(implicit localizationConfiguration: LocalizationConfiguration): List[Action] = {
-    // Build an Action for all the directories.
-    val command = inputs map { i => localizeDirectory(i.cloudPath, i.containerPath, exitOnSuccess = false) } mkString "\n"
+    // Build Actions for groups of directories.
+    import mouse.all._
+    val commands = for {
+      grouping <- inputs.grouped(10)
+      command = grouping flatMap { i =>
+        List(
+          ActionBuilder.localizingInputMessage(i) |> ActionBuilder.timestampedMessage(withSleep = false),
+          localizeDirectory(i.cloudPath, i.containerPath, exitOnSuccess = false)
+        )
+      } mkString "\n"
+    } yield command
+
     val labels = Map(
       Key.Tag -> Value.Localization,
       Key.InputName -> "Input directories"
     )
-    List(cloudSdkShellAction(command)(mounts = mounts, labels = labels))
+    commands.toList map { command => cloudSdkShellAction("sleep 5\n" + command)(mounts = mounts, labels = labels) }
   }
 
   def groupedGcsInputActions(gcsInputs: List[PipelinesApiInput], mounts: List[Mount])(implicit localizationConfiguration: LocalizationConfiguration): List[Action] = {
