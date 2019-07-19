@@ -176,21 +176,29 @@ object ActionBuilder {
     starting ++ actions ++ done
   }
 
+  def localizingInputMessage(pipelinesParameter: PipelinesParameter): String = {
+    "Localizing input %s -> %s".format(
+      shellEscaped(pipelinesParameter.cloudPath),
+      shellEscaped(pipelinesParameter.containerPath),
+    )
+  }
+
+  def delocalizingOutputMessage(pipelinesParameter: PipelinesParameter): String = {
+    "Delocalizing output %s -> %s".format(
+      shellEscaped(pipelinesParameter.containerPath),
+      shellEscaped(pipelinesParameter.cloudPath),
+    )
+  }
+
   /** Creates an Action that describes the parameter localization or delocalization. */
   def describeParameter(pipelinesParameter: PipelinesParameter,
                         actionLabels: Map[String, String]): Action = {
     pipelinesParameter match {
       case _: PipelinesApiInput =>
-        val message = "Localizing input %s -> %s".format(
-          shellEscaped(pipelinesParameter.cloudPath),
-          shellEscaped(pipelinesParameter.containerPath),
-        )
+        val message = localizingInputMessage(pipelinesParameter)
         ActionBuilder.logTimestampedAction(message, List(), actionLabels)
       case _: PipelinesApiOutput =>
-        val message = "Delocalizing output %s -> %s".format(
-          shellEscaped(pipelinesParameter.containerPath),
-          shellEscaped(pipelinesParameter.cloudPath),
-        )
+        val message = delocalizingOutputMessage(pipelinesParameter)
         ActionBuilder.logTimestampedAction(message, List(ActionFlag.AlwaysRun), actionLabels)
     }
   }

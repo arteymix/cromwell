@@ -173,16 +173,22 @@ object PipelinesParameterConversions {
 
   def groupedGcsFileInputActions(inputs: List[PipelinesApiFileInput], mounts: List[Mount])(implicit localizationConfiguration: LocalizationConfiguration): List[Action] = {
     // Build an Action for groups of files.
+    import mouse.all._
     val commands = for {
       grouping <- inputs.grouped(2)
-      command = inputs.map { i => localizeFile(i.cloudPath, i.containerPath, exitOnSuccess = false) } mkString "\n"
+      command = inputs.flatMap { i =>
+        List(
+           ActionBuilder.localizingInputMessage(i) |> ActionBuilder.timestampedMessage(withSleep = false),
+           localizeFile(i.cloudPath, i.containerPath, exitOnSuccess = false)
+        )
+      } mkString "\n"
     } yield command
 
     val labels = Map(
       Key.Tag -> Value.Localization,
       Key.InputName -> "Input files"
     )
-    commands.toList map { command => cloudSdkShellAction(command)(mounts = mounts, labels = labels) }
+    commands.toList map { command => cloudSdkShellAction("sleep 5\n" + command)(mounts = mounts, labels = labels) }
   }
 
   def groupedGcsDirectoryInputActions(inputs: List[PipelinesApiDirectoryInput], mounts: List[Mount])(implicit localizationConfiguration: LocalizationConfiguration): List[Action] = {
