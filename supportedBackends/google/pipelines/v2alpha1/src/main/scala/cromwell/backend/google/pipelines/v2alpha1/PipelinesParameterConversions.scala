@@ -175,8 +175,8 @@ object PipelinesParameterConversions {
     // Build an Action for groups of files.
     import mouse.all._
     val commands = for {
-      grouping <- inputs.grouped(2)
-      command = inputs.flatMap { i =>
+      grouping <- inputs.grouped(50)
+      command = grouping flatMap { i =>
         List(
            ActionBuilder.localizingInputMessage(i) |> ActionBuilder.timestampedMessage(withSleep = false),
            localizeFile(i.cloudPath, i.containerPath, exitOnSuccess = false)
