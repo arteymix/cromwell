@@ -5,7 +5,7 @@ import cats.syntax.functor._
 import com.typesafe.config.ConfigFactory
 import common.Checked
 import cromwell.core.{CacheConfig, WorkflowId, WorkflowOptions, WorkflowSourceFilesCollection}
-import cromwell.languages.util.ImportResolver.{HttpResolver, RootWorkflowResolvedImports}
+import cromwell.languages.util.ImportResolver.{HttpResolver, ResolvedImportsStore}
 import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers}
 import wom.expression.NoIoFunctionSet
 
@@ -57,7 +57,7 @@ class NamespaceCacheSpec extends FlatSpec with BeforeAndAfterAll with Matchers {
     )
 
     var lookupCount = 0
-    val countingResolver = new HttpResolver(new RootWorkflowResolvedImports) {
+    val countingResolver = new HttpResolver(new ResolvedImportsStore) {
       override def pathToLookup(str: String): Checked[String] = {
         lookupCount = lookupCount + 1
         super.pathToLookup(str)

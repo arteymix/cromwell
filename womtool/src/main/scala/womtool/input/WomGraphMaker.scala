@@ -21,11 +21,11 @@ import scala.util.Try
 
 object WomGraphMaker {
 
-  def getBundle(mainFile: Path, listDependencies: Boolean = false): Checked[(WomBundle, Option[RootWorkflowResolvedImports])] =
+  def getBundle(mainFile: Path, listDependencies: Boolean = false): Checked[(WomBundle, Option[ResolvedImportsStore])] =
     getBundleAndFactory(mainFile, listDependencies).map(x => (x._1, x._3))
 
-  private def getBundleAndFactory(mainFile: Path, listDependencies: Boolean): Checked[(WomBundle, LanguageFactory, Option[RootWorkflowResolvedImports])] = {
-    val rootWfResolvedImportsObj = new RootWorkflowResolvedImports
+  private def getBundleAndFactory(mainFile: Path, listDependencies: Boolean): Checked[(WomBundle, LanguageFactory, Option[ResolvedImportsStore])] = {
+    val rootWfResolvedImportsObj = new ResolvedImportsStore
 
     lazy val importResolvers: List[ImportResolver] =
       DirectoryResolver.localFilesystemResolvers(Some(mainFile), rootWfResolvedImportsObj) :+ HttpResolver(rootWfResolvedImportsObj, relativeTo = None)
@@ -45,7 +45,7 @@ object WomGraphMaker {
     }
   }
 
-  def fromFiles(mainFile: Path, inputs: Option[Path], listDependencies: Boolean = false): Checked[(Graph, Option[RootWorkflowResolvedImports])] = {
+  def fromFiles(mainFile: Path, inputs: Option[Path], listDependencies: Boolean = false): Checked[(Graph, Option[ResolvedImportsStore])] = {
     getBundleAndFactory(mainFile, listDependencies) flatMap { case (womBundle, languageFactory, workflowDependencies) =>
       inputs match {
         case None =>

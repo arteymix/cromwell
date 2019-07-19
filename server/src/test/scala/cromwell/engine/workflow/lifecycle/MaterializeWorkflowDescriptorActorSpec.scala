@@ -10,7 +10,7 @@ import cromwell.core._
 import cromwell.engine.backend.{BackendConfigurationEntry, CromwellBackends}
 import cromwell.engine.workflow.lifecycle.materialization.MaterializeWorkflowDescriptorActor
 import cromwell.engine.workflow.lifecycle.materialization.MaterializeWorkflowDescriptorActor.{MaterializeWorkflowDescriptorCommand, MaterializeWorkflowDescriptorFailureResponse, MaterializeWorkflowDescriptorSuccessResponse}
-import cromwell.languages.util.ImportResolver.RootWorkflowResolvedImports
+import cromwell.languages.util.ImportResolver.ResolvedImportsStore
 import cromwell.util.SampleWdl.HelloWorld
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mockito.MockitoSugar
@@ -52,7 +52,7 @@ class MaterializeWorkflowDescriptorActorSpec extends CromwellTestKitWordSpec wit
   val Timeout = 10.second.dilated
   val NoBehaviorActor = system.actorOf(Props.empty)
 
-  def createNewRootWfResolvedImports = new RootWorkflowResolvedImports
+  def createNewRootWfResolvedImports = new ResolvedImportsStore
 
   before {
   }

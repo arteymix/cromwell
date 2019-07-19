@@ -18,7 +18,7 @@ import cromwell.engine.workflow.WorkflowActor._
 import cromwell.engine.workflow.WorkflowManagerActor._
 import cromwell.engine.workflow.workflowstore.{WorkflowHeartbeatConfig, WorkflowStoreActor, WorkflowStoreEngineActor}
 import cromwell.jobstore.JobStoreActor.{JobStoreWriteFailure, JobStoreWriteSuccess, RegisterWorkflowCompleted}
-import cromwell.languages.util.ImportResolver.RootWorkflowResolvedImports
+import cromwell.languages.util.ImportResolver.ResolvedImportsStore
 import cromwell.webservice.EngineStatsActor
 import net.ceedubs.ficus.Ficus._
 import org.apache.commons.lang3.exception.ExceptionUtils
@@ -309,7 +309,7 @@ class WorkflowManagerActor(params: WorkflowManagerActorParams)
       totalJobsByRootWf = new AtomicInteger(),
       fileHashCacheActor = fileHashCacheActor,
       blacklistCache = callCachingBlacklistCache,
-      rootWfResolvedImports = new RootWorkflowResolvedImports)
+      rootWfResolvedImports = new ResolvedImportsStore)
     val wfActor = context.actorOf(wfProps, name = s"WorkflowActor-$workflowId")
 
     wfActor ! SubscribeTransitionCallBack(self)

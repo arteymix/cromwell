@@ -28,7 +28,7 @@ import cromwell.engine.workflow.lifecycle.materialization.MaterializeWorkflowDes
 import cromwell.engine.workflow.lifecycle.materialization.MaterializeWorkflowDescriptorActor.{MaterializeWorkflowDescriptorCommand, MaterializeWorkflowDescriptorFailureResponse, MaterializeWorkflowDescriptorSuccessResponse}
 import cromwell.engine.workflow.workflowstore.WorkflowStoreActor.WorkflowStoreWriteHeartbeatCommand
 import cromwell.engine.workflow.workflowstore.{RestartableAborting, StartableState, WorkflowHeartbeatConfig, WorkflowToStart}
-import cromwell.languages.util.ImportResolver.RootWorkflowResolvedImports
+import cromwell.languages.util.ImportResolver.ResolvedImportsStore
 import cromwell.subworkflowstore.SubWorkflowStoreActor.WorkflowComplete
 import cromwell.webservice.EngineStatsActor
 
@@ -159,7 +159,7 @@ object WorkflowActor {
             totalJobsByRootWf: AtomicInteger,
             fileHashCacheActor: Option[ActorRef],
             blacklistCache: Option[BlacklistCache],
-            rootWfResolvedImports: RootWorkflowResolvedImports): Props = {
+            rootWfResolvedImports: ResolvedImportsStore): Props = {
     Props(
       new WorkflowActor(
         workflowToStart = workflowToStart,
@@ -205,7 +205,7 @@ class WorkflowActor(workflowToStart: WorkflowToStart,
                     totalJobsByRootWf: AtomicInteger,
                     fileHashCacheActor: Option[ActorRef],
                     blacklistCache: Option[BlacklistCache],
-                    rootWfResolvedImports: RootWorkflowResolvedImports)
+                    rootWfResolvedImports: ResolvedImportsStore)
   extends LoggingFSM[WorkflowActorState, WorkflowActorData] with WorkflowLogging with WorkflowMetadataHelper
   with WorkflowInstrumentation with Timers {
 

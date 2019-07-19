@@ -2,7 +2,7 @@ package cromwell.services.womtool
 
 import cats.data.Validated.{Invalid, Valid}
 import cromwell.core.WorkflowSourceFilesCollection
-import cromwell.languages.util.ImportResolver.{HttpResolver, RootWorkflowResolvedImports}
+import cromwell.languages.util.ImportResolver.{HttpResolver, ResolvedImportsStore}
 import cromwell.languages.util.{ImportResolver, LanguageFactoryUtil}
 import cromwell.languages.{LanguageFactory, ValidatedWomNamespace}
 import cromwell.services.womtool.WomtoolServiceMessages.{DescribeFailure, DescribeResult, DescribeSuccess}
@@ -14,7 +14,7 @@ import wom.expression.NoIoFunctionSet
 object Describer {
 
   def describeWorkflow(wsfc: WorkflowSourceFilesCollection): DescribeResult = {
-    val rootWfResolvedImportsObj = new RootWorkflowResolvedImports
+    val rootWfResolvedImportsObj = new ResolvedImportsStore
 
     // The HTTP resolver is used to pull down workflows submitted by URL
     LanguageFactoryUtil.findWorkflowSource(wsfc.workflowSource, wsfc.workflowUrl, List(HttpResolver(rootWfResolvedImportsObj, None, Map.empty))) match {
@@ -45,7 +45,7 @@ object Describer {
   private def describeWorkflowInner(factory: LanguageFactory,
                                     workflow: WorkflowSource,
                                     workflowSourceFilesCollection: WorkflowSourceFilesCollection,
-                                    rootWfResolvedImports: RootWorkflowResolvedImports): WorkflowDescription = {
+                                    rootWfResolvedImports: ResolvedImportsStore): WorkflowDescription = {
 
     // Mirror of the inputs/no inputs fork in womtool.validate.Validate
     if (workflowSourceFilesCollection.inputsJson.isEmpty) {

@@ -4,13 +4,13 @@ import java.nio.file.Paths
 
 import common.assertion.ErrorOrAssertions._
 import cromwell.core.path.DefaultPath
-import cromwell.languages.util.ImportResolver.{DirectoryResolver, HttpResolver, RootWorkflowResolvedImports}
+import cromwell.languages.util.ImportResolver.{DirectoryResolver, HttpResolver, ResolvedImportsStore}
 import org.scalatest.{FlatSpec, Matchers}
 
 class ImportResolverSpec extends FlatSpec with Matchers {
   behavior of "HttpResolver"
 
-  val emptyRootWfResolvedImports = new RootWorkflowResolvedImports
+  val emptyRootWfResolvedImports = new ResolvedImportsStore
 
   val canon = Map(
     "http://abc.com:8000/blah?x=5&y=10" -> "http://abc.com:8000/blah?x=5&y=10",

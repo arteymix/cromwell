@@ -20,7 +20,7 @@ import cromwell.engine.workflow.lifecycle.finalization.WorkflowFinalizationActor
 import cromwell.engine.workflow.lifecycle.initialization.WorkflowInitializationActor.{WorkflowInitializationAbortedResponse, WorkflowInitializationFailedResponse}
 import cromwell.engine.workflow.lifecycle.materialization.MaterializeWorkflowDescriptorActor.MaterializeWorkflowDescriptorFailureResponse
 import cromwell.engine.workflow.workflowstore.{StartableState, Submitted, WorkflowHeartbeatConfig, WorkflowToStart}
-import cromwell.languages.util.ImportResolver.RootWorkflowResolvedImports
+import cromwell.languages.util.ImportResolver.ResolvedImportsStore
 import cromwell.util.SampleWdl.ThreeStep
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.Eventually
@@ -48,7 +48,7 @@ class WorkflowActorSpec extends CromwellTestKitWordSpec with WorkflowDescriptorB
   var currentWorkflowId: WorkflowId = _
   val currentLifecycleActor = TestProbe()
   val workflowSources = ThreeStep.asWorkflowSources(workflowOptions = mockWorkflowOptions)
-  val rootWfResolvedImports = new RootWorkflowResolvedImports
+  val rootWfResolvedImports = new ResolvedImportsStore
   val descriptor = createMaterializedEngineWorkflowDescriptor(WorkflowId.randomId(), workflowSources = workflowSources, rootWfResolvedImports)
   val supervisorProbe = TestProbe()
   val deathwatch = TestProbe()
@@ -234,7 +234,7 @@ class WorkflowActorWithTestAddons(val finalizationProbe: TestProbe,
                                   workflowHeartbeatConfig: WorkflowHeartbeatConfig,
                                   totalJobsByRootWf: AtomicInteger,
                                   extraPathBuilderFactory: Option[PathBuilderFactory],
-                                  rootWfResolvedImports: RootWorkflowResolvedImports) extends WorkflowActor(
+                                  rootWfResolvedImports: ResolvedImportsStore) extends WorkflowActor(
   workflowToStart = WorkflowToStart(id = workflowId,
     submissionTime = OffsetDateTime.now,
     state = startState,

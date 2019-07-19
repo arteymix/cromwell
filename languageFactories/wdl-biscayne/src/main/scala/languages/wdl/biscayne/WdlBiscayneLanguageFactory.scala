@@ -50,7 +50,7 @@ class WdlBiscayneLanguageFactory(override val config: Config) extends LanguageFa
                                        workflowOptionsJson: WorkflowOptionsJson,
                                        importResolvers: List[ImportResolver],
                                        languageFactories: List[LanguageFactory],
-                                       listDependencies: Boolean = false): Checked[(WomBundle, Option[RootWorkflowResolvedImports])] = {
+                                       listDependencies: Boolean = false): Checked[(WomBundle, Option[ResolvedImportsStore])] = {
     val checkEnabled: CheckedAtoB[FileStringParserInput, FileStringParserInput] = CheckedAtoB.fromCheck(x => enabledCheck map(_ => x))
     val converter: CheckedAtoB[FileStringParserInput, WomBundle] = checkEnabled andThen
       stringToAst andThen

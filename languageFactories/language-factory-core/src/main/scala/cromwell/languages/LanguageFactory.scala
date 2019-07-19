@@ -5,7 +5,7 @@ import common.Checked
 import common.validation.IOChecked.IOChecked
 import common.validation.Checked._
 import cromwell.core.{WorkflowId, WorkflowOptions, WorkflowSourceFilesCollection}
-import cromwell.languages.util.ImportResolver.{ImportResolver, RootWorkflowResolvedImports}
+import cromwell.languages.util.ImportResolver.{ImportResolver, ResolvedImportsStore}
 import wom.core._
 import wom.executable.WomBundle
 import wom.expression.IoFunctionSet
@@ -37,7 +37,7 @@ trait LanguageFactory {
                               workflowOptionsJson: WorkflowOptionsJson,
                               importResolvers: List[ImportResolver],
                               languageFactories: List[LanguageFactory],
-                              listDependencies: Boolean = false): Checked[(WomBundle, Option[RootWorkflowResolvedImports])]
+                              listDependencies: Boolean = false): Checked[(WomBundle, Option[ResolvedImportsStore])]
 
   def createExecutable(womBundle: WomBundle,
                        inputs: WorkflowJson,
@@ -57,6 +57,6 @@ trait LanguageFactory {
     */
   def looksParsable(content: String): Boolean
 
-  def getResolvedImports(listDependencies: Boolean, importResolvers: List[ImportResolver]): Option[RootWorkflowResolvedImports] =
+  def getResolvedImports(listDependencies: Boolean, importResolvers: List[ImportResolver]): Option[ResolvedImportsStore] =
     if (listDependencies) Option(importResolvers.head.getRootWfResolvedImports) else None
 }

@@ -16,7 +16,7 @@ import cromwell.engine.workflow.WorkflowActor._
 import cromwell.engine.workflow.tokens.DynamicRateLimiter.Rate
 import cromwell.engine.workflow.tokens.JobExecutionTokenDispenserActor
 import cromwell.engine.workflow.workflowstore.{Submitted, WorkflowHeartbeatConfig, WorkflowToStart}
-import cromwell.languages.util.ImportResolver.RootWorkflowResolvedImports
+import cromwell.languages.util.ImportResolver.ResolvedImportsStore
 import cromwell.util.SampleWdl
 import cromwell.util.SampleWdl.HelloWorld.Addressee
 import org.scalatest.BeforeAndAfter
@@ -74,7 +74,7 @@ class SimpleWorkflowActorSpec extends CromwellTestKitWordSpec with BeforeAndAfte
         totalJobsByRootWf = new AtomicInteger(),
         fileHashCacheActor = None,
         blacklistCache = None,
-        rootWfResolvedImports = new RootWorkflowResolvedImports),
+        rootWfResolvedImports = new ResolvedImportsStore),
       supervisor = supervisor.ref,
       name = s"workflow-actor-$workflowId"
     )

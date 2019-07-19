@@ -112,7 +112,7 @@ Success!
 List of Workflow dependencies are:
 /path/to/my/import/myImport.wdl
 /path/to/another/import/anotherImport.wdl
-https://path-to-http-import/httpImort.wdl
+https://path-to-http-import/httpImport.wdl
 ```
 
 ### `inputs`

@@ -4,7 +4,7 @@
 
 ### List dependencies flag in WOMtool Command Line 
 
-Cromwell now outputs the list of files referenced in import statements using `-l` flag for `validate` command.
+WOMtool now outputs the list of files referenced in import statements using `-l` flag for `validate` command.
 More info [here](https://cromwell.readthedocs.io/en/stable/WOMtool/)
 
 ## 44 Release Notes

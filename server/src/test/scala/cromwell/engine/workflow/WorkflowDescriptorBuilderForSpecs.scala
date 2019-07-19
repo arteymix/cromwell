@@ -7,7 +7,7 @@ import cromwell.core.{HogGroup, SimpleIoActor, WorkflowId, WorkflowSourceFilesCo
 import cromwell.engine.EngineWorkflowDescriptor
 import cromwell.engine.workflow.lifecycle.materialization.MaterializeWorkflowDescriptorActor
 import cromwell.engine.workflow.lifecycle.materialization.MaterializeWorkflowDescriptorActor.{MaterializeWorkflowDescriptorCommand, MaterializeWorkflowDescriptorFailureResponse, MaterializeWorkflowDescriptorSuccessResponse, WorkflowDescriptorMaterializationResult}
-import cromwell.languages.util.ImportResolver.RootWorkflowResolvedImports
+import cromwell.languages.util.ImportResolver.ResolvedImportsStore
 
 import scala.concurrent.Await
 
@@ -17,7 +17,7 @@ trait WorkflowDescriptorBuilderForSpecs {
   implicit val actorSystem: ActorSystem
   lazy val ioActor = actorSystem.actorOf(SimpleIoActor.props)
 
-  def createMaterializedEngineWorkflowDescriptor(id: WorkflowId, workflowSources: WorkflowSourceFilesCollection, rootWfResolvedImports: RootWorkflowResolvedImports): EngineWorkflowDescriptor = {
+  def createMaterializedEngineWorkflowDescriptor(id: WorkflowId, workflowSources: WorkflowSourceFilesCollection, rootWfResolvedImports: ResolvedImportsStore): EngineWorkflowDescriptor = {
     import akka.pattern.ask
     implicit val timeout = akka.util.Timeout(awaitTimeout)
     implicit val ec = actorSystem.dispatcher

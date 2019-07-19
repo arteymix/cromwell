@@ -14,7 +14,7 @@ import cromwell.engine.workflow.lifecycle.execution.WorkflowExecutionActor.{Exec
 import cromwell.engine.workflow.tokens.JobExecutionTokenDispenserActor
 import cromwell.engine.workflow.tokens.DynamicRateLimiter.Rate
 import cromwell.engine.workflow.workflowstore.Submitted
-import cromwell.languages.util.ImportResolver.RootWorkflowResolvedImports
+import cromwell.languages.util.ImportResolver.ResolvedImportsStore
 import cromwell.services.ServiceRegistryActor
 import cromwell.services.metadata.MetadataService
 import cromwell.util.SampleWdl
@@ -74,7 +74,7 @@ class WorkflowExecutionActorSpec extends CromwellTestKitSpec with FlatSpecLike w
     CromwellBackends.initBackends(List(MockBackendConfigEntry))
 
     val workflowId = WorkflowId.randomId()
-    val engineWorkflowDescriptor = createMaterializedEngineWorkflowDescriptor(workflowId, SampleWdl.HelloWorld.asWorkflowSources(runtime = runtimeSection), new RootWorkflowResolvedImports)
+    val engineWorkflowDescriptor = createMaterializedEngineWorkflowDescriptor(workflowId, SampleWdl.HelloWorld.asWorkflowSources(runtime = runtimeSection), new ResolvedImportsStore)
     val callCacheReadActor = TestProbe()
     val callCacheWriteActor = TestProbe()
     val dockerHashActor = TestProbe()

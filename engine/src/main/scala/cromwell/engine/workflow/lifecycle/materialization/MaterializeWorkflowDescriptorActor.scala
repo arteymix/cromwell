@@ -66,7 +66,7 @@ object MaterializeWorkflowDescriptorActor {
             importLocalFilesystem: Boolean,
             ioActorProxy: ActorRef,
             hogGroup: HogGroup,
-            rootWfResolvedImports: RootWorkflowResolvedImports): Props = {
+            rootWfResolvedImports: ResolvedImportsStore): Props = {
     Props(new MaterializeWorkflowDescriptorActor(
       serviceRegistryActor,
       workflowId,
@@ -152,7 +152,7 @@ class MaterializeWorkflowDescriptorActor(serviceRegistryActor: ActorRef,
                                          importLocalFilesystem: Boolean,
                                          ioActorProxy: ActorRef,
                                          hogGroup: HogGroup,
-                                         rootWfResolvedImports: RootWorkflowResolvedImports) extends LoggingFSM[MaterializeWorkflowDescriptorActorState, Unit] with StrictLogging with WorkflowLogging {
+                                         rootWfResolvedImports: ResolvedImportsStore) extends LoggingFSM[MaterializeWorkflowDescriptorActorState, Unit] with StrictLogging with WorkflowLogging {
 
   import MaterializeWorkflowDescriptorActor._
   val tag = self.path.name
